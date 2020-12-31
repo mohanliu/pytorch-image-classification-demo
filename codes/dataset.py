@@ -1,20 +1,15 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.optim import lr_scheduler
-import numpy as np
-import torchvision
-from torchvision import datasets, models, transforms
-import time
 import os
-import copy
+
+import torch
+import torchvision
+from torchvision import datasets, transforms
 
 from .config import Config
 
-class Dataset(Config):
+class FTDataset(Config):
     def __init__(self, phase="train", **kwargs):
         # intialize config
-        super().__init__()
+        super().__init__(**kwargs)
 
         # current phase
         self._phase = phase
@@ -67,3 +62,30 @@ class Dataset(Config):
             os.path.join(self._datapath, self._phase),
             self.data_transforms
         )
+
+    _dataloader = None
+    @property
+    def dataloader(self):
+        if self._dataloader is None:
+            self._dataloader = self._get_data_loader()
+        return self._dataloader
+
+    @dataloader.setter
+    def dataloader(self, dataloader):
+        self._dataloader = dataloader
+
+    def _get_data_loader(self):
+        return torch.utils.data.DataLoader(
+            self.image_dataset, 
+            batch_size=self._batch_size,
+            shuffle=self._shuffle, 
+            num_workers=self._num_worker
+        )
+
+    @property
+    def _size(self):
+        return len(self.image_dataset)
+
+    @property
+    def _classes(self):
+        return self.image_dataset.classes
