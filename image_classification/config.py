@@ -20,4 +20,11 @@ class Config(object):
         self._num_worker = kwargs.get("num_worker", 0)
 
         # Optimization params
-        self._num_epoch = kwargs.get("num_epoch", 25)
+        self._num_epochs = kwargs.get("num_epochs", 25)
+        self._learning_rate = kwargs.get("learning_rate", 0.001)
+        self._momentum = kwargs.get("momentum", 0.9)
+        self._lr_scheduler_dict = kwargs.get("lr_scheduler", {
+            "__name__": "step_lr",
+            "step_size": 7,
+            "gamma": 0.1
+        })

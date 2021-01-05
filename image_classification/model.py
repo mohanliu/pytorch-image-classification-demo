@@ -15,4 +15,17 @@ class FineTuneModel(Config):
             model_ft.fc = nn.Linear(num_ftrs, num_labels)
 
             return model_ft
+        
+    def _num_total_params(self, _model):
+        num_params = 0
+        
+        for p in _model.parameters():
+            num_params += p.numel()
+            
+        return num_params
+    
+    def _num_trainable_params(self, _model):
+        return sum(p.numel() for p in _model.parameters() if p.requires_grad)
+
+        
 

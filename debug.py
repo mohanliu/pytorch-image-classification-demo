@@ -1,10 +1,10 @@
 import os
 import argparse
 
-from codes import config
-from codes import dataset
-from codes import model
-from codes import solver
+from image_classification import config
+from image_classification import dataset
+from image_classification import model
+from image_classification import solver
 
 def test_config():
     c = config.Config()
@@ -19,11 +19,22 @@ def test_dataset():
 
 def test_model():
     m = model.FineTuneModel()
-    print(m.get_model(2))
+    _model = m.get_model(2)
+    print(_model)
+    print("=" * 80)
+    print(_model.state_dict().keys())
+    print("=" * 80)
+    print("The number of total parameters: {}".format(m._num_total_params(_model)))
+    print("The number of trainable parameters: {}".format(m._num_trainable_params(_model)))
+    
 
 def test_solver():
     s = solver.Solver()
-    print(s.__dict__)
+    print(s.val_dataloader.__dict__)
+    
+def test_training():
+    s = solver.Solver(num_epochs=2, gpu_number=7)
+    s.train()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -31,6 +42,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", "-D", action="store_true", help="Dataset test")
     parser.add_argument("--model", "-M", action="store_true", help="Model test")
     parser.add_argument("--solver", "-S", action="store_true", help="Solver test")
+    parser.add_argument("--traintest", "-T", action="store_true", help="Training test")
     args = parser.parse_args()
 
     if args.config:
@@ -45,3 +57,5 @@ if __name__ == "__main__":
     if args.solver:
         test_solver()
     
+    if args.traintest:
+        test_training()
