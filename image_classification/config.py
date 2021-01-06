@@ -5,12 +5,14 @@ class Config(object):
         self._homedir = os.path.dirname(
             os.path.dirname(os.path.realpath(__file__))
         )
-
+        
+        # Training Data path
         self._datapath = os.path.join(
             self._homedir, 
             kwargs.get("datapath", "hymenoptera_data")
         )
-
+        
+        # Model backbone
         self._model_backbone = "resnet18"
         self._pretrain = True
 
@@ -28,3 +30,9 @@ class Config(object):
             "step_size": 7,
             "gamma": 0.1
         })
+        
+        # Output file
+        self._snapshot_folder = os.path.join(
+            self._homedir,
+            kwargs.get("snapshot_folder", "snapshots")
+        )
