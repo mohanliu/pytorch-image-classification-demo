@@ -10,12 +10,13 @@ def test_config():
     c = config.Config()
     print(c.__dict__)
 
-def test_dataset():
-    d = dataset.FTDataset(batch_size=2)
-    print(d.image_dataset)
-    print(d.dataloader.__dict__)
-    print(d._size)
-    print(d._classes)
+def test_dataset():    
+    dl = dataset.FTDataLoader(batch_size=2)
+    print(dl.dataloader.__dict__)
+    print(dl._size)
+    print(dl._classes)
+    print(dl.image_dataset.data_location)
+    print(dl.image_dataset[0])
 
 def test_model():
     m = model.FineTuneModel()
@@ -33,8 +34,16 @@ def test_solver():
     print(s.val_dataloader.__dict__)
     
 def test_training():
-    s = solver.Solver(num_epochs=2, gpu_number=7)
+    s = solver.Solver(num_epochs=5, gpu_number=7, lr_scheduler={
+            "__name__": "step_lr",
+            "step_size": 1,
+            "gamma": 0.1
+        })
     s.train()
+    
+def test_evaluation():
+    s = solver.Solver(gpu_number=7)
+    s.evaluate(-1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -43,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", "-M", action="store_true", help="Model test")
     parser.add_argument("--solver", "-S", action="store_true", help="Solver test")
     parser.add_argument("--traintest", "-T", action="store_true", help="Training test")
+    parser.add_argument("--evaluate", "-E", action="store_true", help="Evalutation Test")
     args = parser.parse_args()
 
     if args.config:
@@ -59,3 +69,6 @@ if __name__ == "__main__":
     
     if args.traintest:
         test_training()
+        
+    if args.evaluate:
+        test_evaluation()
