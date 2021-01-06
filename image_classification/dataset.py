@@ -1,31 +1,37 @@
 import os
+import glob
+from PIL import Image
 
 import torch
+from torch.utils.data import Dataset, DataLoader
 import torchvision
 from torchvision import datasets, transforms
 
 from .config import Config
 
-class FTDataset(Config):
+class FTDataset(Config, Dataset):
     def __init__(self, phase="train", **kwargs):
         # intialize config
         super().__init__(**kwargs)
 
         # current phase
         self._phase = phase
+        
+        # load raw data
+        self._prepare_data()
 
-    _data_transforms = None
+    _image_transforms = None
     @property
-    def data_transforms(self):
-        if self._data_transforms is None:
-            self._data_transforms = self._set_data_transforms()
-        return self._data_transforms
+    def image_transforms(self):
+        if self._image_transforms is None:
+            self._image_transforms = self._set_image_transforms()
+        return self._image_transforms
 
-    @data_transforms.setter
-    def data_transforms(self, data_transforms):
-        self._data_transforms = data_transforms
+    @image_transforms.setter
+    def image_transforms(self, image_transforms):
+        self._image_transforms = image_transforms
 
-    def _set_data_transforms(self):
+    def _set_image_transforms(self):
         """Function to set up data augmentation
         
         Data augmentation and normalization for training; just normalization for validation
@@ -46,22 +52,53 @@ class FTDataset(Config):
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
 
-    _image_dataset = None
     @property
-    def image_dataset(self):
-        if self._image_dataset is None:
-            self._image_dataset = self._get_image_dataset()
-        return self._image_dataset
+    def data_location(self):
+        return os.path.join(self._datapath, self._phase)
     
-    @image_dataset.setter
-    def image_dataset(self, image_dataset):
-        self._image_dataset = image_dataset
+    def _prepare_data(self):
+        """Function to load data from raw images with targets
+        
+        Attributes:
+            classes: list of classes
+            class_to_idx: dict of class indices
+            image_labels: [
+                                (image_path_1, target_1), 
+                                (image_path_2, target_2),
+                                ...
+                          ]
+        """
+        self.image_labels = [
+            (f, os.path.basename(os.path.dirname(f)))
+            for f in glob.glob(os.path.join(self.data_location, "*", "*"))
+        ]
+        
+        self.classes = list(set([v[1] for v in self.image_labels]))
+        self.class_to_idx = {
+            cls_name: i for i, cls_name in enumerate(sorted(self.classes))
+        }
+    
+    def __getitem__(self, idx):
+        filename, target = self.image_labels[idx]
+        
+        img = Image.open(filename).convert('RGB')
+        img_ = self.image_transforms(img)
+        
+        label_ = self.class_to_idx[target]
 
-    def _get_image_dataset(self):
-        return datasets.ImageFolder(
-            os.path.join(self._datapath, self._phase),
-            self.data_transforms
-        )
+        return img_, label_
+    
+    def __len__(self):
+        return len(self.image_labels)
+
+class FTDataLoader(Config):
+    def __init__(self, phase="train", **kwargs):
+        # intialize config
+        super().__init__(**kwargs)
+
+        # current phase
+        self._phase = phase
+        self.image_dataset = FTDataset(phase=phase, **kwargs)   
 
     _dataloader = None
     @property
@@ -75,7 +112,7 @@ class FTDataset(Config):
         self._dataloader = dataloader
 
     def _get_data_loader(self):
-        return torch.utils.data.DataLoader(
+        return DataLoader(
             self.image_dataset, 
             batch_size=self._batch_size,
             shuffle=self._shuffle, 
