@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 
 hymenoptera_data/
+snapshots/
