@@ -11,6 +11,11 @@ class Config(object):
             self._homedir, 
             kwargs.get("datapath", "hymenoptera_data")
         )
+        self._target_classes = ['ants', 'bees']
+        self._target_class_to_idx = {
+            "ants": 0,
+            "bees": 1
+        }
         
         # Model backbone
         self._model_backbone = "resnet18"
