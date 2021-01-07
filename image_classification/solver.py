@@ -91,34 +91,47 @@ class Solver(Config):
         absolute_path = os.path.join(self._snapshot_folder, "epoch_{}_{}".format(epoch, filename))
         torch.save(state, absolute_path)
         
-    def update_best_model(self, epoch, filename='checkpoint.pth.tar'):
+    def update_best_model(self, epoch, acc, filename='checkpoint.pth.tar'):
         if not os.path.exists(self._results_folder):
             os.makedirs(self._results_folder)
         
         current_absolute_path = os.path.join(self._snapshot_folder, "epoch_{}_{}".format(epoch, filename))
         best_absolute_path = os.path.join(self._snapshot_folder, "best_{}".format(filename))
-        best_absolute_result = os.path.join(self._results_folder, "best_{}_{}".format(self._model_backbone, filename))
+        best_absolute_result = os.path.join(
+            self._results_folder, 
+            "best_{}_acc{:.4f}_{}".format(self._model_backbone, acc, filename)
+        )
         
         shutil.copyfile(current_absolute_path, best_absolute_path)
         shutil.copyfile(current_absolute_path, best_absolute_result)
+        logger.info("Saving new best model to results: {}".format(best_absolute_result))
         
-    def restore_model(self, epoch=-1, filename='checkpoint.pth.tar'):
-        if epoch == -1:
-            model_path = "best_{}".format(filename)
+    def restore_model(self, resultname=None, epoch=-1, filename='checkpoint.pth.tar'):
+        if resultname is None:
+            if epoch == -1:
+                model_path = "best_{}".format(filename)
+            else:
+                model_path = "epoch_{}_{}".format(epoch, filename)
+
+            model_fullpath = os.path.join(self._snapshot_folder, model_path)
         else:
-            model_path = "epoch_{}_{}".format(epoch, filename)
+            model_fullpath = os.path.join(self._results_folder, resultname)
         
-        model_fullpath = os.path.join(self._snapshot_folder, model_path)
-        
+        logger.info("Lodding model: {}".format(model_fullpath))
         checkpoint = torch.load(model_fullpath, map_location=self._device)
         self.model.load_state_dict(checkpoint["state_dict"])
         self.model.to(self._device)
 
-    def train(self):
+    def train(self, load_epoch=None, load_model=None):
         logger.info('Start training...')
         since_ = time.time()
 
-#         best_model_wts = copy.deepcopy(self.model.state_dict())
+        if load_model is not None:
+            self.restore_model(resultname=load_model)
+        elif load_epoch is not None:
+            self.restore_model(epoch=load_epoch)
+            
+        best_epoch = 0
         best_acc = 0.0
 
         for epoch in range(self._num_epochs):
@@ -206,11 +219,13 @@ class Solver(Config):
                     # deep copy the model
                     if epoch_acc > best_acc:
                         best_acc = epoch_acc
-                        self.update_best_model(epoch)
+                        best_epoch = epoch
 
             gc.collect()
             torch.cuda.empty_cache()
-
+        
+        self.update_best_model(best_epoch, best_acc)
+        
         time_elapsed = time.time() - since_
         logger.info('Training complete in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
@@ -243,7 +258,3 @@ class Solver(Config):
         total_acc = running_corrects / self.val_datasize
             
         logger.info("Total Loss: {:.4f}, Acc: {:.4f}".format(total_loss, total_acc))
-        
-    def inference(self, epoch):
-        # TO DO
-        pass
