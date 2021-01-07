@@ -37,7 +37,7 @@ def test_config():
     print(c.__dict__)
 
 def test_dataset():    
-    dl = dataset.FTDataLoader(batch_size=2)
+    dl = dataset.FTDataLoader(batch_size=32, global_batch_size=2)
     logger.info(dl.dataloader.__dict__)
     logger.info(dl._size)
     logger.info(dl._classes)
@@ -55,11 +55,11 @@ def test_model():
     logger.info("The number of trainable parameters: {}".format(m._num_trainable_params(_model)))
 
 def test_solver():
-    s = solver.Solver()
+    s = solver.Solver(gpu_number=[6, 7], batch_size=4)
     logger.info(s.val_dataloader.__dict__)
     
 def test_training():
-    s = solver.Solver(num_epochs=5, gpu_number=[6], lr_scheduler={
+    s = solver.Solver(num_epochs=5, gpu_number=[6, 7], lr_scheduler={
             "__name__": "step_lr",
             "step_size": 1,
             "gamma": 0.1
