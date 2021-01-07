@@ -7,6 +7,7 @@ from image_classification import config
 from image_classification import dataset
 from image_classification import model
 from image_classification import solver
+from image_classification.inference import ImageClassification
 
 # Logging setup
 if not os.path.exists(os.path.join(".", "logs")):
@@ -43,6 +44,9 @@ def test_dataset():
     logger.info(dl._classes)
     logger.info(dl.image_dataset.data_location)
     logger.info(dl.image_dataset[0])
+    logger.info(dl._target_classes)
+    logger.info(dl._target_class_to_idx)
+    
 
 def test_model():
     m = model.FineTuneModel()
@@ -64,11 +68,16 @@ def test_training():
             "step_size": 1,
             "gamma": 0.1
         })
-    s.train()
+#     s.train(load_epoch=1)
+    s.train(load_model="best_resnet18_acc0.9477_checkpoint.pth.tar")
     
 def test_evaluation():
     s = solver.Solver(gpu_number=7)
     s.evaluate(-1)
+    
+def test_inference():
+    c = ImageClassification(gpu_number=7)
+    c.predict({})
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -76,8 +85,9 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", "-D", action="store_true", help="Dataset test")
     parser.add_argument("--model", "-M", action="store_true", help="Model test")
     parser.add_argument("--solver", "-S", action="store_true", help="Solver test")
-    parser.add_argument("--traintest", "-T", action="store_true", help="Training test")
+    parser.add_argument("--train", "-T", action="store_true", help="Training test")
     parser.add_argument("--evaluate", "-E", action="store_true", help="Evalutation Test")
+    parser.add_argument("--inference", "-I", action="store_true", help="Inference Test")
     args = parser.parse_args()
 
     if args.config:
@@ -92,8 +102,11 @@ if __name__ == "__main__":
     if args.solver:
         test_solver()
     
-    if args.traintest:
+    if args.train:
         test_training()
         
     if args.evaluate:
         test_evaluation()
+        
+    if args.inference:
+        test_inference()
