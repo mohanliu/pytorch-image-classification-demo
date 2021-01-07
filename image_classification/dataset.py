@@ -98,7 +98,10 @@ class FTDataLoader(Config):
 
         # current phase
         self._phase = phase
-        self.image_dataset = FTDataset(phase=phase, **kwargs)   
+        self.image_dataset = FTDataset(phase=phase, **kwargs)
+        
+        # set global batch size (for multi-device training)
+        self._global_batch_size = kwargs.get("global_batch_size", self._batch_size)
 
     _dataloader = None
     @property
@@ -110,11 +113,11 @@ class FTDataLoader(Config):
     @dataloader.setter
     def dataloader(self, dataloader):
         self._dataloader = dataloader
-
+        
     def _get_data_loader(self):
         return DataLoader(
             self.image_dataset, 
-            batch_size=self._batch_size,
+            batch_size=self._global_batch_size,
             shuffle=self._shuffle, 
             num_workers=self._num_worker
         )
