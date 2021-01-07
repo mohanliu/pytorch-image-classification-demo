@@ -1,6 +1,7 @@
 import os
 import argparse
 import logging
+import glob
 
 from image_classification.helpers import Formatter
 from image_classification import config
@@ -63,7 +64,7 @@ def test_solver():
     logger.info(s.val_dataloader.__dict__)
     
 def test_training():
-    s = solver.Solver(num_epochs=5, gpu_number=[7], lr_scheduler={
+    s = solver.Solver(num_epochs=5, gpu_number=[6,7], lr_scheduler={
             "__name__": "step_lr",
             "step_size": 1,
             "gamma": 0.1
@@ -72,12 +73,14 @@ def test_training():
     s.train(load_model="best_resnet18_acc0.9477_checkpoint.pth.tar")
     
 def test_evaluation():
-    s = solver.Solver(gpu_number=7)
+    s = solver.Solver(gpu_number=[7])
     s.evaluate(-1)
     
 def test_inference():
-    c = ImageClassification(gpu_number=7)
-    c.predict({})
+    import random
+    c = ImageClassification(weight_path="results/best_resnet18_acc0.9477_checkpoint.pth.tar", gpu_number=[6])
+    for f in random.choices(glob.glob("hymenoptera_data/val/*/*"), k=20):
+        logger.info(c.predict(f))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
