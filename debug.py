@@ -59,7 +59,7 @@ def test_solver():
     logger.info(s.val_dataloader.__dict__)
     
 def test_training():
-    s = solver.Solver(num_epochs=5, gpu_number=[6, 7], lr_scheduler={
+    s = solver.Solver(num_epochs=5, gpu_number=[7], lr_scheduler={
             "__name__": "step_lr",
             "step_size": 1,
             "gamma": 0.1

@@ -97,7 +97,7 @@ class Solver(Config):
         
         current_absolute_path = os.path.join(self._snapshot_folder, "epoch_{}_{}".format(epoch, filename))
         best_absolute_path = os.path.join(self._snapshot_folder, "best_{}".format(filename))
-        best_absolute_result = os.path.join(self._results_folder, "best_{}".format(filename))
+        best_absolute_result = os.path.join(self._results_folder, "best_{}_{}".format(self._model_backbone, filename))
         
         shutil.copyfile(current_absolute_path, best_absolute_path)
         shutil.copyfile(current_absolute_path, best_absolute_result)
