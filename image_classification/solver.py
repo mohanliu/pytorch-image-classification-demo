@@ -39,17 +39,19 @@ class Solver(Config):
         if isinstance(gpu_number, int):
             self._device = torch.device("cuda:{}".format(gpu_number) if torch.cuda.is_available() else "cpu")
             self._multi_gpu_mode = False
+            self._num_gpu = 1
             logger.info("Using single device: {}".format(self._device))
 
         elif isinstance(gpu_number, list):
             os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, gpu_number))
             self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self._multi_gpu_mode = True
+            self._num_gpu = len(gpu_number)
             logger.info("Using {} GPUs: {}".format(torch.cuda.device_count(), str(gpu_number)))
 
     def _get_dataset(self):
         for p in ["train", "val"]:
-            temp_d = FTDataLoader(phase=p)
+            temp_d = FTDataLoader(phase=p, global_batch_size=self._num_gpu * self._batch_size)
             setattr(self, "{}_dataloader".format(p), temp_d.dataloader)
             setattr(self, "{}_datasize".format(p), temp_d._size)
 
@@ -90,9 +92,15 @@ class Solver(Config):
         torch.save(state, absolute_path)
         
     def update_best_model(self, epoch, filename='checkpoint.pth.tar'):
+        if not os.path.exists(self._results_folder):
+            os.makedirs(self._results_folder)
+        
         current_absolute_path = os.path.join(self._snapshot_folder, "epoch_{}_{}".format(epoch, filename))
         best_absolute_path = os.path.join(self._snapshot_folder, "best_{}".format(filename))
+        best_absolute_result = os.path.join(self._results_folder, "best_{}".format(filename))
+        
         shutil.copyfile(current_absolute_path, best_absolute_path)
+        shutil.copyfile(current_absolute_path, best_absolute_result)
         
     def restore_model(self, epoch=-1, filename='checkpoint.pth.tar'):
         if epoch == -1:
