@@ -11,18 +11,20 @@ import os
 import copy
 import gc
 import shutil
+import logging
 
 from .config import Config
 from .dataset import FTDataLoader
 from .model import FineTuneModel
+
+logger = logging.getLogger("image_classification.solver")
 
 class Solver(Config):
     def __init__(self, gpu_number=0, **kwargs):
         super().__init__(**kwargs)
 
         # get device
-        self._device = torch.device("cuda:{}".format(gpu_number) if torch.cuda.is_available() else "cpu")
-        print("Using device: {}".format(self._device))
+        self._set_device(gpu_number)
 
         # prepare data
         self._get_dataset()
@@ -32,6 +34,18 @@ class Solver(Config):
         self._set_optimizer(self.model.parameters())
         self._set_criterion()
         self._set_learningrate_scheduler()
+        
+    def _set_device(self, gpu_number):
+        if isinstance(gpu_number, int):
+            self._device = torch.device("cuda:{}".format(gpu_number) if torch.cuda.is_available() else "cpu")
+            self._multi_gpu_mode = False
+            logger.info("Using single device: {}".format(self._device))
+
+        elif isinstance(gpu_number, list):
+            os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, gpu_number))
+            self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self._multi_gpu_mode = True
+            logger.info("Using {} GPUs: {}".format(torch.cuda.device_count(), str(gpu_number)))
 
     def _get_dataset(self):
         for p in ["train", "val"]:
@@ -44,7 +58,11 @@ class Solver(Config):
 
     def _get_or_load_model(self):
         self.model = FineTuneModel().get_model(len(self.classes))
-        self.model.to(self._device)
+        if self._multi_gpu_mode:
+            self.model = nn.DataParallel(self.model)
+            self.model.to(self._device)
+        else:
+            self.model.to(self._device)
 
     def _set_optimizer(self, parameters):
         self.optimizer = optim.SGD(
@@ -89,15 +107,15 @@ class Solver(Config):
         self.model.to(self._device)
 
     def train(self):
-        print('Start training...')
+        logger.info('Start training...')
         since_ = time.time()
 
 #         best_model_wts = copy.deepcopy(self.model.state_dict())
         best_acc = 0.0
 
         for epoch in range(self._num_epochs):
-            print('Epoch {}/{}'.format(epoch, self._num_epochs - 1))
-            print('-' * 10)
+            logger.info('Epoch {}/{}'.format(epoch, self._num_epochs - 1))
+            logger.info('-' * 10)
 
             
             loss_dict = {}
@@ -161,7 +179,7 @@ class Solver(Config):
                 )
                 acc_dict[phase] = epoch_acc
 
-                print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+                logger.info('{} Loss: {:.4f} Acc: {:.4f}'.format(
                     phase, epoch_loss, epoch_acc
                 ))
                 
@@ -182,14 +200,13 @@ class Solver(Config):
                         best_acc = epoch_acc
                         self.update_best_model(epoch)
 
-            print()
             gc.collect()
             torch.cuda.empty_cache()
 
         time_elapsed = time.time() - since_
-        print('Training complete in {:.0f}m {:.0f}s'.format(
+        logger.info('Training complete in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
-        print('Best val Acc: {:4f}'.format(best_acc))
+        logger.info('Best val Acc: {:4f}'.format(best_acc))
         
     def evaluate(self, epoch):
         # load model
@@ -217,7 +234,7 @@ class Solver(Config):
         total_loss = running_loss / self.val_datasize
         total_acc = running_corrects / self.val_datasize
             
-        print("Total Loss: {:.4f}, Acc: {:.4f}".format(total_loss, total_acc))
+        logger.info("Total Loss: {:.4f}, Acc: {:.4f}".format(total_loss, total_acc))
         
     def inference(self, epoch):
         # TO DO

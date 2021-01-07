@@ -17,7 +17,7 @@ class Config(object):
         self._pretrain = True
 
         # Data Loader configs
-        self._batch_size = kwargs.get("batch_size", 4)
+        self._batch_size = kwargs.get("batch_size", 16)
         self._shuffle = kwargs.get("shuffle", True)
         self._num_worker = kwargs.get("num_worker", 0)
 
