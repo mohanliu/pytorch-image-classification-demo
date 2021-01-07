@@ -60,8 +60,6 @@ class FTDataset(Config, Dataset):
         """Function to load data from raw images with targets
         
         Attributes:
-            classes: list of classes
-            class_to_idx: dict of class indices
             image_labels: [
                                 (image_path_1, target_1), 
                                 (image_path_2, target_2),
@@ -72,11 +70,7 @@ class FTDataset(Config, Dataset):
             (f, os.path.basename(os.path.dirname(f)))
             for f in glob.glob(os.path.join(self.data_location, "*", "*"))
         ]
-        
-        self.classes = list(set([v[1] for v in self.image_labels]))
-        self.class_to_idx = {
-            cls_name: i for i, cls_name in enumerate(sorted(self.classes))
-        }
+
     
     def __getitem__(self, idx):
         filename, target = self.image_labels[idx]
@@ -84,7 +78,7 @@ class FTDataset(Config, Dataset):
         img = Image.open(filename).convert('RGB')
         img_ = self.image_transforms(img)
         
-        label_ = self.class_to_idx[target]
+        label_ = self._target_class_to_idx[target]
 
         return img_, label_
     
@@ -128,4 +122,4 @@ class FTDataLoader(Config):
 
     @property
     def _classes(self):
-        return self.image_dataset.classes
+        return self.image_dataset._target_classes
