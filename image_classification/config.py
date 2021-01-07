@@ -36,3 +36,7 @@ class Config(object):
             self._homedir,
             kwargs.get("snapshot_folder", "snapshots")
         )
+        self._results_folder = os.path.join(
+            self._homedir,
+            kwargs.get("result_folder", "results")
+        )
